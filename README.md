@@ -3,9 +3,9 @@
 Zapified is a project developed to scan web applications with ZAP
 during the development process, in order to find potential vulnerabilities before the app is deployed.
 
-In order to run the project, you have to:
 
 # Running  zapified
+In order to run the project, you have to:
 - [ ] have docker installed
 - [ ] clone this repository with `git clone https://github.com/lisikava/zapified.git`
 - [ ] create a virtual environment with `python -m venv .venv`
