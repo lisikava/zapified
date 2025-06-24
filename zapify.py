@@ -1,5 +1,6 @@
 import time
 from zapv2 import ZAPv2
+import click
 
 target = 'http://localhost:5000'
 zap = ZAPv2(proxies={'http': 'http://localhost:8090', 'https': 'http://localhost:8090'}, apikey='change-me-9203935709')
@@ -37,10 +38,6 @@ try:
         f.write(zap.core.jsonreport())
 except:
     print(f'Failed to generate report')
-
-import time
-from zapv2 import ZAPv2
-import click
 
 @click.command()
 @click.option('--target', default='http://localhost:5000', help='The target URL to run the scan on')
