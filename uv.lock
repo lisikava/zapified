@@ -546,6 +546,18 @@ wheels = [
 ]
 
 [[package]]
+name = "python-owasp-zap-v2-4"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "zaproxy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/54/fc/91192ca872399544c09c1cf3053c71d87d8fc21a4a0ddba1a890940a761a/python-owasp-zap-v2.4-0.1.0.tar.gz", hash = "sha256:2af4252320b3b77a38712081422688e676e038306cf1f2792feed811235afa8b", size = 5222, upload-time = "2023-08-09T12:33:16.127Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8c/aa/2d32daaa560bd2ed4f338bc97e3ff845906c6190bf7aa778b7c7911c1844/python_owasp_zap_v2.4-0.1.0-py2.py3-none-any.whl", hash = "sha256:d4dc00387b0089d81683be01b8272577ad39fb47674377f65c7da0fd30b8abe9", size = 5418, upload-time = "2023-08-09T12:33:14.61Z" },
+]
+
+[[package]]
 name = "pytz"
 version = "2025.2"
 source = { registry = "https://pypi.org/simple" }
@@ -815,6 +827,7 @@ dependencies = [
     { name = "markupsafe" },
     { name = "pandas" },
     { name = "plotly" },
+    { name = "python-owasp-zap-v2-4" },
     { name = "requests" },
     { name = "six" },
     { name = "streamlit" },
@@ -837,6 +850,7 @@ requires-dist = [
     { name = "markupsafe", specifier = ">=3.0.2" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "plotly", specifier = ">=5.15.0" },
+    { name = "python-owasp-zap-v2-4", specifier = ">=0.1.0" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "six", specifier = ">=1.17.0" },
     { name = "streamlit", specifier = ">=1.28.0" },
