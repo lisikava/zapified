@@ -11,7 +11,7 @@ In order to run the project, you have to:
 - [ ] create a virtual environment with `python -m venv .venv`
 - [ ] run a virtual environment with `source .venv/bin/atcivate`
 - [ ] install the required dependencies with `pip install -r requirements.txt`
-- [ ] do `sudo docker run -u zap -p 8090:8090 --network="host" -i zaproxy/zap-stable  zap.sh -daemon -host 0.0.0.0 -port 8090   -config api.addrs.addr.name=.*   -config api.addrs.addr.regex=true -config api.key=change-me-9203935709
+- [ ] execute `sudo docker run -u zap -p 8090:8090 --network="host" -i zaproxy/zap-stable  zap.sh -daemon -host 0.0.0.0 -port 8090   -config api.addrs.addr.name=.*   -config api.addrs.addr.regex=true -config api.key=change-me-9203935709
 ` to run the ZAP docker image 
 - [ ] run the app you wish to scan. There is a sample Hello world app inside this project,
 which you may run as an example with `python sample_app.py`
