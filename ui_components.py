@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -14,7 +12,6 @@ import threading
 from typing import Dict, List, Optional, Tuple
 
 class UIComponents:
-    """Reusable UI components for Streamlit interface"""
     
     @staticmethod
     def create_metric_cards(risk_counts: Dict[str, int]) -> None:
@@ -71,13 +68,11 @@ class UIComponents:
         if not alerts:
             return
         
-        # Count vulnerabilities by risk level
         risk_counts = {}
         for alert in alerts:
             risk = alert.get('risk', 'Unknown')
             risk_counts[risk] = risk_counts.get(risk, 0) + 1
         
-        # Create pie chart
         fig = px.pie(
             values=list(risk_counts.values()),
             names=list(risk_counts.keys()),
@@ -115,7 +110,6 @@ class UIComponents:
         if not alerts:
             return pd.DataFrame()
         
-        # Prepare data for table
         table_data = []
         for alert in alerts:
             table_data.append({
@@ -131,7 +125,6 @@ class UIComponents:
         df = pd.DataFrame(table_data)
         
         if filterable and not df.empty:
-            # Add filters
             col1, col2 = st.columns(2)
             with col1:
                 risk_filter = st.multiselect(
@@ -146,7 +139,6 @@ class UIComponents:
                     default=df['Confidence'].unique()
                 )
             
-            # Apply filters
             df = df[
                 (df['Risk'].isin(risk_filter)) & 
                 (df['Confidence'].isin(confidence_filter))
@@ -162,7 +154,6 @@ class UIComponents:
         return text[:max_length] + "..."
 
 class ProjectDetector:
-    """Detects project types and configurations"""
     
     FRAMEWORK_PATTERNS = {
         'flask': {
@@ -221,7 +212,6 @@ class ProjectDetector:
     @classmethod
     def _matches_framework(cls, project_path: Path, config: Dict) -> bool:
         """Check if project matches framework patterns"""
-        # Check for required files
         required_files = config.get('files', [])
         files_found = 0
         
@@ -229,7 +219,6 @@ class ProjectDetector:
             if list(project_path.glob(file_pattern)) or (project_path / file_pattern).exists():
                 files_found += 1
         
-        # If most required files are found, check content patterns
         if files_found >= len(required_files) * 0.5:  # At least 50% of files found
             return cls._check_content_patterns(project_path, config.get('patterns', []))
         
@@ -241,7 +230,6 @@ class ProjectDetector:
         if not patterns:
             return True
         
-        # Check common files for patterns
         common_files = ['*.py', '*.js', '*.json', '*.txt', '*.xml', '*.properties']
         
         for file_pattern in common_files:
@@ -256,7 +244,7 @@ class ProjectDetector:
         return False
 
 class ScanManager:
-    """Manages scan execution and progress tracking"""
+
     
     def __init__(self):
         self.current_scan = None
@@ -269,50 +257,45 @@ class ScanManager:
                 if progress_callback:
                     progress_callback("Starting", 0.1, "Initializing scan...")
                 
-                # Health check
                 if scanner.health_check():
                     if log_callback:
-                        log_callback("✅ Health check passed")
+                        log_callback("Health check passed")
                     if progress_callback:
                         progress_callback("Health Check", 0.2, "ZAP and target are accessible")
                 else:
                     raise Exception("Health check failed")
                 
-                # Configure scan
                 scanner.configure_scan()
                 if log_callback:
-                    log_callback("✅ Scan configured")
+                    log_callback("Scan configured")
                 if progress_callback:
                     progress_callback("Configuration", 0.3, "Scan parameters set")
                 
-                # Spider scan
                 if progress_callback:
                     progress_callback("Spider Scan", 0.4, "Discovering application structure...")
                 
                 if scanner.spider_scan():
                     if log_callback:
-                        log_callback("✅ Spider scan completed")
+                        log_callback("Spider scan completed")
                     if progress_callback:
                         progress_callback("Spider Complete", 0.6, "Application structure mapped")
                 else:
                     raise Exception("Spider scan failed")
                 
-                # Active scan
                 if progress_callback:
                     progress_callback("Active Scan", 0.7, "Running vulnerability tests...")
                 
                 if scanner.active_scan():
                     if log_callback:
-                        log_callback("✅ Active scan completed")
+                        log_callback("Active scan completed")
                     if progress_callback:
                         progress_callback("Active Complete", 0.9, "Vulnerability testing finished")
                 else:
                     raise Exception("Active scan failed")
                 
-                # Generate reports
                 if scanner.generate_reports():
                     if log_callback:
-                        log_callback("✅ Reports generated")
+                        log_callback("Reports generated")
                     if progress_callback:
                         progress_callback("Complete", 1.0, "Scan completed successfully!")
                     
@@ -322,7 +305,7 @@ class ScanManager:
                     
             except Exception as e:
                 if log_callback:
-                    log_callback(f"❌ Scan failed: {str(e)}")
+                    log_callback(f"Scan failed: {str(e)}")
                 raise e
         
         self.scan_thread = threading.Thread(target=run_scan)
@@ -353,8 +336,6 @@ class ReportExporter:
     
     @staticmethod
     def export_to_html(scan_results: Dict, template: str = None) -> str:
-        """Export scan results to HTML report"""
-        # Simple HTML template - can be enhanced
         html_template = """
         <!DOCTYPE html>
         <html>
