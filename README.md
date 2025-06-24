@@ -1,8 +1,8 @@
-# 🔒 Zapified - Automated Web Application Security Scanner
+#  Zapified - Automated Web Application Security Scanner
 
 Zapified is a comprehensive Python-based security scanning tool that integrates OWASP ZAP (Zed Attack Proxy) into your development workflow to identify potential vulnerabilities before deployment.
 
-## ✨ Features
+##  Features
 
 - **Automated Security Scanning**: Spider crawling + active vulnerability scanning
 - **Multiple Report Formats**: JSON, HTML, and human-readable summary reports  
@@ -12,7 +12,7 @@ Zapified is a comprehensive Python-based security scanning tool that integrates 
 - **Comprehensive Logging**: Detailed logs for debugging and audit trails
 - **CLI Interface**: Easy-to-use command-line interface with multiple operation modes
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Python 3.11+
@@ -99,7 +99,7 @@ python zapify.py http://localhost:5000 --skip-active-scan
 - `--api-key`: ZAP API key (default: change-me-9203935709)
 - `--skip-active-scan`: Perform only spider scanning
 
-## 📊 Reports
+##  Reports
 
 Zapified generates multiple report formats:
 
@@ -108,12 +108,12 @@ Zapified generates multiple report formats:
 3. **Summary Report** (`security_summary_TIMESTAMP.txt`): Human-readable vulnerability summary
 
 Reports are categorized by risk levels:
-- 🔴 **High**: Critical vulnerabilities requiring immediate attention
-- 🟡 **Medium**: Important security issues
-- 🔵 **Low**: Minor security concerns
-- 🟢 **Informational**: Security-related information
+-  **High**: Critical vulnerabilities requiring immediate attention
+-  **Medium**: Important security issues
+-  **Low**: Minor security concerns
+-  **Informational**: Security-related information
 
-## 🧪 Sample Vulnerable Application
+##  Sample Vulnerable Application
 
 The included `sample_app.py` contains intentional vulnerabilities for testing:
 
@@ -123,9 +123,9 @@ The included `sample_app.py` contains intentional vulnerabilities for testing:
 - **Weak Authentication**: `/login` with basic session management
 - **Information Disclosure**: `/headers` endpoint exposing request details
 
-**⚠️ Warning**: Never deploy the sample app in production environments!
+** Warning**: Never deploy the sample app in production environments!
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -140,7 +140,7 @@ The included `sample_app.py` contains intentional vulnerabilities for testing:
                        └─────────────────┘
 ```
 
-## 🔧 Integration with CI/CD
+##  Integration with CI/CD
 
 ### GitHub Actions Example
 
@@ -187,49 +187,3 @@ jobs:
           name: security-reports
           path: security-reports/
 ```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**ZAP Connection Failed**
-- Ensure Docker is running
-- Check if port 8090 is available
-- Verify ZAP container is running: `docker ps`
-
-**Target Application Not Accessible**
-- Confirm your app is running on the specified port
-- Check firewall settings
-- Ensure the app accepts connections from localhost
-
-**Scan Takes Too Long**
-- Reduce spider depth with `--spider-depth`
-- Use `--skip-active-scan` for faster results
-- Check ZAP logs for performance issues
-
-**Permission Errors**
-- Ensure write permissions for the output directory
-- Run with appropriate user permissions
-- Check Docker daemon permissions
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -am 'Add feature'`
-4. Push to branch: `git push origin feature-name`
-5. Submit a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## ⚠️ Disclaimer
-
-This tool is designed for authorized security testing only. Always ensure you have proper authorization before scanning any web application. The sample vulnerable application should never be deployed in production environments.
-
-## 🔗 Resources
-
-- [OWASP ZAP Documentation](https://www.zaproxy.org/docs/)
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [Web Application Security Testing Guide](https://owasp.org/www-project-web-security-testing-guide/)
