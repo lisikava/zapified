@@ -15,6 +15,6 @@ In order to run the project, you have to:
 ` to run the ZAP docker image 
 - [ ] run the app you wish to scan. There is a sample Hello world app inside this project,
 which you may run as an example with `python sample_app.py`
-- [ ] finally, run the scanner with `python zapify.py`, you may specify the target url and port with `--target` option, the default one is `http://127.0.0.1:5000` 
+- [ ] finally, run the scanner with `python zapify.py`, you may specify the target url and port with `--target` option, the default one is `http://127.0.0.1:5000` and `--depth=`
 It will report all the alerts received from the ZAP scan, as well as create a
 `zap_report.json` file, which will contain the full report for the web app.
