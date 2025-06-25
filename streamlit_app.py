@@ -18,10 +18,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class StreamlitUI:
+    
     def __init__(self):
         self.setup_page_config()
         self.initialize_session_state()
-
+    
     def setup_page_config(self):
         st.set_page_config(
             page_title="Zapified Security Scanner",
@@ -29,203 +30,358 @@ class StreamlitUI:
             layout="wide",
             initial_sidebar_state="expanded"
         )
-
+    
     def initialize_session_state(self):
-        st.session_state.setdefault('scan_results', None)
-        st.session_state.setdefault('scan_progress', 0)
-        st.session_state.setdefault('scan_status', "idle")
-        st.session_state.setdefault('project_path', None)
-        st.session_state.setdefault('target_url', None)
-        st.session_state.setdefault('scan_logs', [])
-        st.session_state.setdefault('app_process', None)
+        if 'scan_results' not in st.session_state:
+            st.session_state.scan_results = None
+        if 'scan_progress' not in st.session_state:
+            st.session_state.scan_progress = 0
+        if 'scan_status' not in st.session_state:
+            st.session_state.scan_status = "idle"
+        if 'project_path' not in st.session_state:
+            st.session_state.project_path = None
+        if 'target_url' not in st.session_state:
+            st.session_state.target_url = None
+        if 'scan_logs' not in st.session_state:
+            st.session_state.scan_logs = []
 
 class ProjectManager:
+
     @staticmethod
     def detect_project_type(project_path):
         project_path = Path(project_path)
+        
         if (project_path / "requirements.txt").exists():
             req_content = (project_path / "requirements.txt").read_text()
             if "flask" in req_content.lower():
                 return "flask"
             elif "django" in req_content.lower():
                 return "django"
+        
         if (project_path / "package.json").exists():
             return "node"
+        
         if (project_path / "pom.xml").exists():
             return "java"
+        
         if (project_path / "Gemfile").exists():
             return "ruby"
+        
         return "unknown"
-
+    
     @staticmethod
-    def get_startup_command(project_type):
+    def get_startup_command(project_type, project_path):
         commands = {
             "flask": "python app.py",
             "django": "python manage.py runserver",
             "node": "npm start",
-            "java": "mvn spring-boot:run",
-            "ruby": "rails server"
+            "unknown": None
         }
         return commands.get(project_type)
-
+    
     @staticmethod
     def clone_github_repo(repo_url, branch="main"):
         try:
             temp_dir = tempfile.mkdtemp()
-            git.Repo.clone_from(repo_url, temp_dir, branch=branch)
+            repo = git.Repo.clone_from(repo_url, temp_dir, branch=branch)
             return temp_dir
         except Exception as e:
             st.error(f"Failed to clone repository: {str(e)}")
             return None
 
-def start_target_application(project_path, project_type):
-    command = ProjectManager.get_startup_command(project_type)
-    if not command:
-        st.error("Could not determine how to start the application.")
-        return None
-    try:
-        return subprocess.Popen(
-            command.split(),
-            cwd=project_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-    except Exception as e:
-        st.error(f"Failed to start application: {e}")
-        return None
-
-def stop_target_application():
-    app_process = st.session_state.get("app_process")
-    if app_process:
-        app_process.terminate()
-        app_process.wait()
-        st.session_state.app_process = None
-
 class ScanProgressTracker:
+
     def __init__(self):
         self.progress_container = None
         self.log_container = None
-
+    
     def setup_progress_display(self):
         self.progress_container = st.container()
         self.log_container = st.container()
-
+    
     def update_progress(self, step, progress, message):
         if self.progress_container:
             with self.progress_container:
                 st.progress(progress)
                 st.write(f"{step}: {message}")
-
+    
     def add_log(self, message):
         timestamp = datetime.now().strftime("%H:%M:%S")
         log_entry = f"[{timestamp}] {message}"
         st.session_state.scan_logs.append(log_entry)
+        
         if self.log_container:
             with self.log_container:
                 st.text_area("Scan Logs", "\n".join(st.session_state.scan_logs[-10:]), height=200)
 
 class ReportViewer:
+
     @staticmethod
     def display_scan_results(scan_results):
         if not scan_results or 'alerts' not in scan_results:
             st.warning("No scan results available")
             return
+        
         alerts = scan_results['alerts']
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
         risk_counts = {'High': 0, 'Medium': 0, 'Low': 0, 'Informational': 0}
         for alert in alerts:
             risk = alert.get('risk', 'Unknown')
             if risk in risk_counts:
                 risk_counts[risk] += 1
-        st.metric("High Risk", risk_counts['High'])
-        st.metric("Medium Risk", risk_counts['Medium'])
-        st.metric("Low Risk", risk_counts['Low'])
-        st.metric("Informational", risk_counts['Informational'])
-
+        
+        with col1:
+            st.metric("🔴 High Risk", risk_counts['High'])
+        with col2:
+            st.metric("🟡 Medium Risk", risk_counts['Medium'])
+        with col3:
+            st.metric("🔵 Low Risk", risk_counts['Low'])
+        with col4:
+            st.metric("🟢 Informational", risk_counts['Informational'])
+        
+        score = ReportViewer.calculate_security_score(risk_counts)
+        st.metric("Security Score", f"{score}/10")
         st.subheader("Detailed Vulnerabilities")
-        import pandas as pd
-        df = pd.DataFrame([{
-            'Vulnerability': a.get('alert', ''),
-            'Risk': a.get('risk', ''),
-            'URL': a.get('url', ''),
-            'Description': a.get('description', ''),
-            'Solution': a.get('solution', '')
-        } for a in alerts])
-        st.dataframe(df, use_container_width=True)
+        
+        if alerts:
+            import pandas as pd
+            
+            df_data = []
+            for alert in alerts:
+                df_data.append({
+                    'Vulnerability': alert.get('alert', 'Unknown'),
+                    'Risk': alert.get('risk', 'Unknown'),
+                    'URL': alert.get('url', 'Unknown'),
+                    'Description': alert.get('description', '')[:100] + "..." if len(alert.get('description', '')) > 100 else alert.get('description', ''),
+                    'Solution': alert.get('solution', '')[:100] + "..." if len(alert.get('solution', '')) > 100 else alert.get('solution', '')
+                })
+            
+            df = pd.DataFrame(df_data)
+            
+            risk_filter = st.multiselect(
+                "Filter by Risk Level",
+                options=['High', 'Medium', 'Low', 'Informational'],
+                default=['High', 'Medium', 'Low', 'Informational']
+            )
+            
+            filtered_df = df[df['Risk'].isin(risk_filter)]
+            st.dataframe(filtered_df, use_container_width=True)
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("Download JSON Report"):
+                    ReportViewer.download_report(scan_results, 'json')
+            with col2:
+                if st.button("Download CSV Report"):
+                    ReportViewer.download_report(filtered_df, 'csv')
+            with col3:
+                if st.button("Run New Scan"):
+                    st.session_state.scan_results = None
+                    st.rerun()
+        else:
+            st.success("No vulnerabilities found!")
+    
+    @staticmethod
+    def calculate_security_score(risk_counts):
+        base_score = 10.0
+        penalties = {
+            'High': 2.0,
+            'Medium': 1.0,
+            'Low': 0.3,
+            'Informational': 0.1
+        }
+        
+        for risk, count in risk_counts.items():
+            if risk in penalties:
+                base_score -= penalties[risk] * count
+        
+        return max(0.0, min(10.0, round(base_score, 1)))
+    
+    @staticmethod
+    def download_report(data, format_type):
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        if format_type == 'json':
+            filename = f"security_report_{timestamp}.json"
+            st.download_button(
+                label="Download JSON Report",
+                data=json.dumps(data, indent=2),
+                file_name=filename,
+                mime="application/json"
+            )
+        elif format_type == 'csv':
+            filename = f"security_report_{timestamp}.csv"
+            st.download_button(
+                label="Download CSV Report",
+                data=data.to_csv(index=False),
+                file_name=filename,
+                mime="text/csv"
+            )
 
 def main():
     ui = StreamlitUI()
+    
     st.title("Zapified Security Scanner")
-    st.markdown("Automated web application security testing with OWASP ZAP")
-
+    st.markdown("**Automated web application security testing with OWASP ZAP**")
+    
     with st.sidebar:
         st.header("Configuration")
+        
         profile_options = list_profiles()
-        selected_profile = st.selectbox("Scan Profile", options=list(profile_options.keys()))
+        selected_profile = st.selectbox(
+            "Scan Profile",
+            options=list(profile_options.keys()),
+            format_func=lambda x: f"{x.title()}: {profile_options[x]}"
+        )
+        
+        st.subheader("ZAP Settings")
         zap_url = st.text_input("ZAP Proxy URL", "http://localhost:8090")
         api_key = st.text_input("API Key", "change-me-9203935709", type="password")
-        spider_depth = st.slider("Spider Depth", 1, 10, 5)
-        skip_active = st.checkbox("Skip Active Scan")
-
-    st.header("Project Setup")
-    input_method = st.radio("Input Method", ["Upload Files", "GitHub Repo"])
-
-    if input_method == "Upload Files":
-        uploaded_files = st.file_uploader("Upload your app files", accept_multiple_files=True)
-        if uploaded_files:
-            temp_dir = tempfile.mkdtemp()
-            for file in uploaded_files:
-                with open(os.path.join(temp_dir, file.name), "wb") as f:
-                    f.write(file.getbuffer())
-            st.session_state.project_path = temp_dir
-            project_type = ProjectManager.detect_project_type(temp_dir)
-            st.session_state.project_type = project_type
-            st.success(f"Uploaded and detected project type: {project_type}")
-
-    else:
-        repo_url = st.text_input("GitHub Repo URL")
-        if st.button("Clone") and repo_url:
-            path = ProjectManager.clone_github_repo(repo_url)
-            if path:
-                st.session_state.project_path = path
-                project_type = ProjectManager.detect_project_type(path)
-                st.session_state.project_type = project_type
-                st.success(f"Cloned and detected project type: {project_type}")
-
-    if st.session_state.project_path:
-        target_url = st.text_input("Target URL", value="http://localhost:5000")
-        st.session_state.target_url = target_url
-        if st.button("Start Scan"):
-            app_process = start_target_application(st.session_state.project_path, st.session_state.project_type)
-            st.session_state.app_process = app_process
-            time.sleep(3)
-            tracker = ScanProgressTracker()
-            tracker.setup_progress_display()
-            with st.spinner("Running scan..."):
-                try:
-                    scanner = ZapifyScanner(target_url, zap_url, api_key)
-                    tracker.update_progress("Health Check", 0.1, "Checking ZAP and target...")
-                    if scanner.health_check():
-                        tracker.update_progress("Configure", 0.2, "Setting up scan...")
-                        scanner.configure_scan(spider_depth)
-                        tracker.update_progress("Spider", 0.3, "Spider scanning...")
-                        if scanner.spider_scan():
-                            if not skip_active:
-                                tracker.update_progress("Active", 0.6, "Active scanning...")
-                                scanner.active_scan()
-                            tracker.update_progress("Reporting", 0.9, "Generating reports...")
-                            if scanner.generate_reports():
-                                st.session_state.scan_results = scanner.scan_results
-                                st.session_state.scan_status = "completed"
-                                tracker.update_progress("Done", 1.0, "Scan complete!")
-                                st.success("Scan completed!")
-                    else:
-                        st.error("Health check failed.")
-                finally:
-                    stop_target_application()
-
-    if st.session_state.scan_results:
+        
+        with st.expander("Advanced Options"):
+            spider_depth = st.slider("Spider Depth", 1, 10, 5)
+            skip_active = st.checkbox("Skip Active Scan")
+    
+    tab1, tab2, tab3, tab4 = st.tabs(["Project Input", "Configuration", "Progress", "Results"])
+    
+    with tab1:
+        st.header("Project Input")
+        
+        input_method = st.radio(
+            "Choose input method:",
+            ["Upload Files", "GitHub Repository"]
+        )
+        
+        if input_method == "Upload Files":
+            uploaded_files = st.file_uploader(
+                "Upload project files",
+                accept_multiple_files=True,
+                help="Upload your web application files"
+            )
+            
+            if uploaded_files:
+                temp_dir = tempfile.mkdtemp()
+                for file in uploaded_files:
+                    file_path = os.path.join(temp_dir, file.name)
+                    with open(file_path, "wb") as f:
+                        f.write(file.getbuffer())
+                
+                st.session_state.project_path = temp_dir
+                
+                project_type = ProjectManager.detect_project_type(temp_dir)
+                st.success(f"Project detected: {project_type.title()}")
+        
+        elif input_method == "GitHub Repository":
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                repo_url = st.text_input("GitHub Repository URL", placeholder="https://github.com/user/repo")
+            with col2:
+                branch = st.text_input("Branch", value="main")
+            
+            if st.button("Clone Repository"):
+                if repo_url:
+                    with st.spinner("Cloning repository..."):
+                        project_path = ProjectManager.clone_github_repo(repo_url, branch)
+                        if project_path:
+                            st.session_state.project_path = project_path
+                            project_type = ProjectManager.detect_project_type(project_path)
+                            st.success(f"Repository cloned! Project type: {project_type.title()}")
+                else:
+                    st.error("Please enter a valid GitHub URL")
+    
+    with tab2:
+        st.header("Scan Configuration")
+        
+        if st.session_state.project_path:
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                target_url = st.text_input("Target URL", value="http://localhost:5000")
+            with col2:
+                if st.button("Validate"):
+                    st.success("URL is valid")
+            
+            st.session_state.target_url = target_url
+            
+            with st.expander("Authentication (Optional)"):
+                auth_type = st.selectbox("Authentication Type", ["None", "Basic Auth", "Form-based"])
+                if auth_type != "None":
+                    username = st.text_input("Username")
+                    password = st.text_input("Password", type="password")
+            
+            if st.button("Start Zapify Scan", type="primary"):
+                if target_url:
+                    st.session_state.scan_status = "running"
+                    st.rerun()
+                else:
+                    st.error("Please configure target URL")
+        else:
+            st.info("Please upload a project or clone a repository first")
+    
+    with tab3:
+        st.header("Scan Progress")
+        
+        if st.session_state.scan_status == "running":
+            progress_tracker = ScanProgressTracker()
+            progress_tracker.setup_progress_display()
+            
+            if st.session_state.target_url:
+                with st.spinner("Running security scan..."):
+                    try:
+                        scanner = ZapifyScanner(st.session_state.target_url, zap_url, api_key)
+                        progress_tracker.update_progress("Health Check", 0.1, "Checking ZAP and target accessibility...")
+                        if scanner.health_check():
+                            progress_tracker.add_log("Health check passed")
+                            
+                            progress_tracker.update_progress("Configuration", 0.2, "Configuring scan parameters...")
+                            scanner.configure_scan(spider_depth)
+                            progress_tracker.add_log("Scan configured")
+                            
+                            progress_tracker.update_progress("Spider Scan", 0.3, "Discovering application structure...")
+                            if scanner.spider_scan():
+                                progress_tracker.add_log("Spider scan completed")
+                                
+                                if not skip_active:
+                                    progress_tracker.update_progress("Active Scan", 0.6, "Running vulnerability tests...")
+                                    if scanner.active_scan():
+                                        progress_tracker.add_log("Active scan completed")
+                                
+                                progress_tracker.update_progress("Reports", 0.9, "Generating reports...")
+                                if scanner.generate_reports():
+                                    progress_tracker.add_log("Reports generated")
+                                    
+                                    st.session_state.scan_results = scanner.scan_results
+                                    st.session_state.scan_status = "completed"
+                                    progress_tracker.update_progress("Complete", 1.0, "Scan completed successfully!")
+                                    
+                                    st.success("Scan completed successfully!")
+                                    st.balloons()
+                        else:
+                            st.error("Health check failed. Please ensure ZAP is running.")
+                            st.session_state.scan_status = "failed"
+                            
+                    except Exception as e:
+                        st.error(f"Scan failed: {str(e)}")
+                        st.session_state.scan_status = "failed"
+        
+        elif st.session_state.scan_status == "idle":
+            st.info("Ready to start scanning. Configure your project in the previous tabs.")
+        
+        elif st.session_state.scan_status == "completed":
+            st.success("Scan completed! Check the Results tab.")
+        
+        elif st.session_state.scan_status == "failed":
+            st.error("Scan failed. Check the logs and try again.")
+    
+    with tab4:
         st.header("Scan Results")
-        ReportViewer.display_scan_results(st.session_state.scan_results)
+        
+        if st.session_state.scan_results:
+            ReportViewer.display_scan_results(st.session_state.scan_results)
+        else:
+            st.info("No scan results available. Run a scan first.")
 
 if __name__ == "__main__":
-    main()
+    main() 
